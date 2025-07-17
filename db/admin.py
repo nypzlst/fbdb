@@ -1,8 +1,11 @@
 from django.contrib import admin
-from .models import CountryFootball, FootballFederationM,FootballLeague,FootballCompetition
+from .models import FbFederation, FbSeason,FbCompetition, FbCountry, FbLeague, FbTeam, FbStandings
 
 # Register your models here.
-admin.site.register(FootballFederationM)
-admin.site.register(CountryFootball)
-admin.site.register(FootballLeague)
-admin.site.register(FootballCompetition)
+admin.site.register(FbFederation)
+admin.site.register(FbCompetition)
+admin.site.register(FbCountry)
+admin.site.register(FbLeague)
+admin.site.register(FbTeam)
+admin.site.register(FbStandings)
+admin.site.register(FbSeason)
