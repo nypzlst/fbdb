@@ -1,9 +1,11 @@
+import datetime
 from django.db import models
 from .additionlist import Type_of_conf, Type_of_Competition
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
+from django.db.models import Q
 
 """ Федерации в духе FIFA, UEFA ..."""
 class FbFederation(models.Model):
@@ -105,7 +107,8 @@ class FbLeague(models.Model):
     
     league_name = models.ForeignKey(
         'FbCompetition',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        limit_choices_to={'type_competition' : 'L'}
     )
     country_league = models.ForeignKey(
         'FbCountry',
@@ -124,6 +127,10 @@ class FbTeam(models.Model):
         verbose_name_plural = 'Football Teams'
     
     team_name = models.CharField(max_length=50)
+    league_where_play_team = models.ForeignKey(
+        FbLeague,
+        on_delete=models.CASCADE
+    )
     def __str__(self):
         return self.team_name
     
@@ -176,7 +183,7 @@ class FbSeason(models.Model):
     name_league = models.ForeignKey( # какой-то кал выходит по названию, так то это название лиги и её старт и конец
         'FbLeague',
         on_delete=models.CASCADE,
-        related_name='season'
+        related_name='season',
     )
 
     start_season_year = models.PositiveIntegerField(
@@ -204,4 +211,54 @@ class FbSeason(models.Model):
                 'end_season_year' : 'Год старта больше чем год конца'
             })
     # TODO: не забыть сериализацию для АПИ !!!
-        
+    # TODO: сделать таблицу матчей - Делаеться 
+
+
+
+class FbMatch(models.Model):
+    class Meta():
+        verbose_name = 'Football Match'
+        verbose_name_plural = 'Football Матчи'
+    
+    
+    match_on_league = models.ForeignKey(
+        FbLeague,
+        on_delete=models.CASCADE,
+        related_name='league_match'
+    )
+
+    home_team = models.ForeignKey(
+        FbTeam,
+        on_delete=models.CASCADE,
+        related_name='home_team'
+    )
+    away_team = models.ForeignKey(
+        FbTeam,
+        on_delete=models.CASCADE,
+        related_name='away_team'
+    )
+
+    home_team_score = models.PositiveSmallIntegerField(default=0)
+    away_team_score = models.PositiveSmallIntegerField(default=0)
+
+    match_time = models.DateTimeField()
+
+
+    def clean(self):
+        super().clean()
+
+        if self.home_team == self.away_team:
+            raise ValidationError({
+                'away_team':'Однинаковые команды выбраны'
+            })
+        conflict_match = FbMatch.objects.filter(
+            Q(home_team = self.home_team) | Q(away_team =self.away_team)|
+            Q(home_team = self.away_team) | Q(away_team = self.home_team),
+            match_time__date = self.match_time.date()
+        ) 
+        if conflict_match.exists():
+            raise ValidationError('В этот день уже существует матч')
+
+
+    def __str__(self):
+        return f"{self.home_team} - {self.away_team} {self.match_time}"
