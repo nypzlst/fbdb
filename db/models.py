@@ -1,6 +1,6 @@
 import datetime
 from django.db import models
-from .additionlist import Type_of_conf, Type_of_Competition
+from .additionlist import Type_of_conf, Type_of_Competition, Type_of_Incedent
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -127,13 +127,36 @@ class FbTeam(models.Model):
         verbose_name_plural = 'Football Teams'
     
     team_name = models.CharField(max_length=50)
-    league_where_play_team = models.ForeignKey(
+    league_where_play_team = models.ForeignKey( # TODO изменить на привязку к competition 
         FbLeague,
         on_delete=models.CASCADE
     )
     def __str__(self):
         return self.team_name
+
+class FbPlayer(models.Model):
+    class Meta:
+        verbose_name = 'Football Player'
+        verbose_name_plural = 'Football Players'
     
+    full_name = models.CharField(max_length=100)
+    short_name = models.CharField(max_length=50)
+
+    jersey_number = models.PositiveIntegerField()
+    position = models.CharField(max_length=5)
+    height = models.PositiveIntegerField()
+    date_of_birthday = models.DateField()
+    prefered_foot = models.CharField()
+
+    national = models.CharField(max_length=50) #TODO: отдельный список стран может сделать???
+    played_in_team = models.ForeignKey(
+        FbTeam,
+        on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return self.full_name
+
 
 
 """ Сущность турнирной таблицы """
@@ -141,6 +164,7 @@ class FbStandings(models.Model):
     class Meta:
         verbose_name = 'Football Standing'
         verbose_name_plural = 'Football Standings'
+        unique_together = ('season_year', 'team')
 
     season_year = models.ForeignKey(
         'FbSeason',
@@ -150,9 +174,9 @@ class FbStandings(models.Model):
         'FbLeague',
         on_delete=models.CASCADE
     )
-    team = models.ForeignKey(
+    team = models.ManyToManyField(
         'FbTeam',
-        on_delete=models.CASCADE
+        related_name='teams'
     )
 
     match_played_count = models.PositiveIntegerField()
@@ -215,10 +239,12 @@ class FbSeason(models.Model):
 
 
 
+""" Создание статистики матчей на основе АПИ sofascore"""
+
 class FbMatch(models.Model):
     class Meta():
         verbose_name = 'Football Match'
-        verbose_name_plural = 'Football Матчи'
+        verbose_name_plural = 'Football Matches'
     
     
     match_on_league = models.ForeignKey(
@@ -256,9 +282,90 @@ class FbMatch(models.Model):
             Q(home_team = self.away_team) | Q(away_team = self.home_team),
             match_time__date = self.match_time.date()
         ) 
+        if self.pk:
+            conflict_match = conflict_match.exclude(pk=self.pk)
+
         if conflict_match.exists():
             raise ValidationError('В этот день уже существует матч')
 
 
     def __str__(self):
         return f"{self.home_team} - {self.away_team} {self.match_time}"
+    
+
+class FbIncedent(models.Model):
+    class Meta():
+        verbose_name = 'Football Incedent'
+        verbose_name_plural = 'Football Incedents'
+
+    match_where_incedent = models.ForeignKey(
+        FbMatch,
+        on_delete=models.CASCADE
+    )
+    time_where_incedent_make = models.PositiveIntegerField()
+    is_own_goal = models.BooleanField()
+    is_home = models.BooleanField() # инцедент хозяев или нет 
+    incedent_type = models.CharField(
+        choices=Type_of_Incedent,
+        max_length= 3,
+    )
+    description = models.CharField(max_length=150, blank=True)
+    reason = models.CharField(max_length=50, blank=True)
+    
+    def __str__(self):
+        return f"{str(self.match_where_incedent)}"
+
+
+
+class FbGoal(models.Model):
+    class Meta():
+        verbose_name = 'Football Goal'
+        verbose_name_plural = 'Football Goals'
+    
+    incedent_goal = models.ForeignKey(
+        FbIncedent,
+        on_delete=models.CASCADE
+    )
+    player_who_scored = models.ForeignKey(
+        FbPlayer,
+        on_delete=models.CASCADE,
+        related_name='player_scored'
+    )
+    player_who_assist = models.ForeignKey(
+        FbPlayer,
+        on_delete=models.CASCADE,
+        related_name='player_assist',
+        blank=True,
+        null= True
+    )
+    def __str__(self):
+        return f"{str(self.incedent_goal)}"
+
+
+
+class FbSubtitution(models.Model):
+    class Meta():
+        verbose_name = 'Football Subtitution'
+        verbose_name_plural = 'Football Subtitutions'
+    
+    incedent_subtitution = models.ForeignKey(
+        FbIncedent,
+        on_delete=models.CASCADE
+    )
+    player_who_in = models.ForeignKey(
+        FbPlayer,
+        on_delete=models.CASCADE,
+        related_name='player_in'
+    )
+    player_who_out = models.ForeignKey(
+        FbPlayer,
+        on_delete=models.CASCADE,
+        related_name='player_out',
+    )
+    def clean(self):
+        super().clean()
+        if self.player_who_in == self.player_who_out:
+            raise ValidationError('Не может быть что игроки совпадают')
+        # TODO сделать учет максимального количества замен или подумать над этим
+    def __str__(self):
+        return f"{str(self.incedent_subtitution)}"
