@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import Q
 
-#region Text Choices Models
+#region Choices Models
 """ Список для выбора типа enum"""
 class PreferedFoot(models.TextChoices):
     LEFT = 'L', 'LEFT',
@@ -26,9 +26,6 @@ class TypeCompetition(models.TextChoices):
     TOURNAMENT = 'T', 'TOURNAMENT',
     LEAGUE = 'L', 'LEAGUE'
 #endregion
-
-
-
 
 
 
@@ -258,8 +255,8 @@ class FbSeason(models.Model):
 
 
 
+# region Match Table
 """ Создание статистики матчей на основе АПИ sofascore"""
-
 class FbMatch(models.Model):
     class Meta():
         verbose_name = 'Football Match'
@@ -324,8 +321,12 @@ class FbIncident(models.Model):
     time_where_incedent_make = models.PositiveIntegerField()
     is_own_goal = models.BooleanField()
     is_home = models.BooleanField() # инцедент хозяев или нет 
-    incedent_type = models.ForeignKey(
+    incident_type = models.ForeignKey(
         'TypeIncedent',
+        on_delete=models.CASCADE
+    )
+    incident_class = models.ForeignKey(
+        'IncidentClass',
         on_delete=models.CASCADE
     )
     description = models.CharField(max_length=150, blank=True)
@@ -388,10 +389,10 @@ class FbSubstitution(models.Model):
         # TODO сделать учет максимального количества замен или подумать над этим
     def __str__(self):
         return f"{str(self.incedent_substitution)}"
+# endregion
 
 
-
-
+# region Addition Models
 """ Вспомогательные таблицы """
 class CountryList(models.Model):
     class Meta:
@@ -409,14 +410,24 @@ class TypeIncedent(models.Model):
     class Meta:
         verbose_name = "Incedent"
         verbose_name_plural = "Incedents"
-        ordering = ['name_incedent']
+        ordering = ['name_incident']
 
-    name_incedent = models.CharField(max_length=50)
-    description_incedent = models.CharField(max_length=200, blank=True)
+    name_incident = models.CharField(max_length=50)
+    description_incident = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
         return self.name_incedent
+class IncidentClass(models.Model):
+    class Meta:
+        verbose_name = 'Football Incident Class'
+        verbose_name_plural = 'Football Incident Clases'
+        ordering = ['class_incident']
 
+    class_incident = models.CharField(max_length=50)
+    description = models.CharField(max_length=200,blank=True)
+    def __str__(self):
+        return self.class_incident
+#endregion
 
 # TODO Уточнить связи моделей: Для связи FbGoal и FbSubstitution с FbIncident лучше использовать
 #  OneToOneField вместо ForeignKey, так как одно событие в матче 

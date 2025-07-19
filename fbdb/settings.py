@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'db.apps.DbConfig',
+    'testing.apps.TestingConfig',
     'rest_framework'
 ]
 

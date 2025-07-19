@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import FbFederation, FbSeason,FbSubstitution,FbCompetition, FbCountry, FbLeague, FbTeam, FbStandings, FbGoal,FbMatch,FbPlayer,FbIncident
-from .models import CountryList, TypeIncedent
+from .models import CountryList, TypeIncedent, IncidentClass
 # Register your models here.
 
 
@@ -19,4 +19,4 @@ admin.site.register(FbGoal)
 admin.site.register(FbSubstitution)
 admin.site.register(CountryList)
 admin.site.register(TypeIncedent)
-
+admin.site.register(IncidentClass)
