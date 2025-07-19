@@ -1,11 +1,36 @@
-import datetime
 from django.db import models
-from .additionlist import Type_of_conf, Type_of_Competition, Type_of_Incedent
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import Q
+
+#region Text Choices Models
+""" Список для выбора типа enum"""
+class PreferedFoot(models.TextChoices):
+    LEFT = 'L', 'LEFT',
+    RIGHT = 'R', 'RIGHT',
+    BOTH = 'B', 'BOTH'
+
+class Position(models.TextChoices):
+    GOALKEEPER = 'GK', 'GOALKEEPER',
+    DEFENDER = 'D', 'DEFENDER',
+    MIDFIELDER = 'M', 'MIDFIELDER',
+    FORWARD = 'F', 'FORWARD'
+
+class TypeConference(models.TextChoices):
+    GLOBAL = 'GL','GLOBAL',
+    CONTINENTAL = 'CN', 'CONTINENTAL'
+
+class TypeCompetition(models.TextChoices):
+    TOURNAMENT = 'T', 'TOURNAMENT',
+    LEAGUE = 'L', 'LEAGUE'
+#endregion
+
+
+
+
+
 
 """ Федерации в духе FIFA, UEFA ..."""
 class FbFederation(models.Model):
@@ -17,15 +42,14 @@ class FbFederation(models.Model):
     name_fed = models.CharField(max_length=100, unique=True)
     acronym_fed = models.CharField(max_length=10, unique=True)
 
-    type_fed = models.CharField(
-        max_length=2,
-        choices=Type_of_conf
-    )
+    type_fed = models.CharField(max_length=2, choices=TypeConference)
     founded_year = models.PositiveIntegerField(
         validators=[MinValueValidator(1850), MaxValueValidator(2100)]
     )
 
-    members_count = models.PositiveIntegerField(help_text=_("Dont counting associate members"))
+    members_count = models.PositiveIntegerField(
+        help_text=_("Dont counting associate members")
+        )
     associate_member_count = models.PositiveIntegerField(
         help_text=_("Members who not full join to federation. Default value 0"),
         blank=True,
@@ -41,8 +65,7 @@ class FbFederation(models.Model):
     )
     other_tournament = models.ManyToManyField(
         'FbCompetition',
-        related_name='secondary_federation'
-    )
+        related_name='secondary_federation')
 
     def __str__(self):
         return self.acronym_fed
@@ -61,14 +84,14 @@ class FbFederation(models.Model):
 class FbCompetition(models.Model):
     class Meta:
         verbose_name = 'Football Competition'
-        verbose_name_plural = 'Football Competions'
+        verbose_name_plural = 'Football Competitions'
         ordering = ['competition_name']
     
     competition_name = models.CharField(max_length=50)
     
     type_competition = models.CharField(
         max_length=1,
-        choices = Type_of_Competition,
+        choices = TypeCompetition,
         blank=True
     )
     
@@ -81,11 +104,13 @@ class FbCompetition(models.Model):
 """ Страна и федерация её """
 class FbCountry(models.Model):
     class Meta():
-        verbose_name = "Country"
-        verbose_name_plural = "Countries"
+        verbose_name = "Football Country"
+        verbose_name_plural = "Football Countries"
         ordering = ['country_name']
     
-    country_name = models.CharField(max_length=50)
+    country_name = models.ForeignKey(
+        'CountryList',
+        on_delete=models.CASCADE)
     country_association_name = models.CharField(max_length=100)
     short_association_name = models.CharField(max_length=10)
     
@@ -95,9 +120,9 @@ class FbCountry(models.Model):
     )
 
     def __str__(self):
-        return self.country_name
+        return f"{self.country_name} - {self.country_association_name}"
 
-
+# TODO приоритеты лиг сделать
 
 """ Сущность футбольной лиги """
 class FbLeague(models.Model):
@@ -111,10 +136,11 @@ class FbLeague(models.Model):
         limit_choices_to={'type_competition' : 'L'}
     )
     country_league = models.ForeignKey(
-        'FbCountry',
+        'CountryList',
         on_delete=models.CASCADE
     ) # желательно хранить страну, хотя лучше подумать над этим
     count_team_in_league = models.IntegerField(default=0)
+    # TODO вычеслять по фактическому количеству команд
     def __str__(self):
         return str(self.league_name)
 
@@ -127,10 +153,7 @@ class FbTeam(models.Model):
         verbose_name_plural = 'Football Teams'
     
     team_name = models.CharField(max_length=50)
-    league_where_play_team = models.ForeignKey( # TODO изменить на привязку к competition 
-        FbLeague,
-        on_delete=models.CASCADE
-    )
+    league_where_play_team = models.ManyToManyField(FbCompetition)
     def __str__(self):
         return self.team_name
 
@@ -141,18 +164,18 @@ class FbPlayer(models.Model):
     
     full_name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=50)
-
-    jersey_number = models.PositiveIntegerField()
-    position = models.CharField(max_length=5)
+    
+    position = models.CharField(max_length=2,choices=Position.choices)
+    prefered_foot = models.CharField(max_length=2,choices=PreferedFoot.choices)
+    
+    jersey_number = models.PositiveIntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
     height = models.PositiveIntegerField()
     date_of_birthday = models.DateField()
-    prefered_foot = models.CharField()
 
-    national = models.CharField(max_length=50) #TODO: отдельный список стран может сделать???
-    played_in_team = models.ForeignKey(
-        FbTeam,
-        on_delete=models.CASCADE
-    )
+    national = models.ForeignKey('CountryList',on_delete=models.CASCADE)
+    played_in_team = models.ForeignKey(FbTeam, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.full_name
@@ -164,35 +187,31 @@ class FbStandings(models.Model):
     class Meta:
         verbose_name = 'Football Standing'
         verbose_name_plural = 'Football Standings'
-        unique_together = ('season_year', 'team')
+        unique_together = ('season_year', 'team', 'standing_league')
 
-    season_year = models.ForeignKey(
-        'FbSeason',
-        on_delete=models.CASCADE
-    )
-    standing_league = models.ForeignKey(
-        'FbLeague',
-        on_delete=models.CASCADE
-    )
-    team = models.ManyToManyField(
-        'FbTeam',
-        related_name='teams'
-    )
+    season_year = models.ForeignKey('FbSeason', on_delete=models.CASCADE)
+    standing_league = models.ForeignKey('FbLeague', on_delete=models.CASCADE)
+    team = models.ForeignKey('FbTeam', on_delete=models.CASCADE)
 
-    match_played_count = models.PositiveIntegerField()
-    win_match_count = models.PositiveIntegerField()
-    losse_match_count = models.PositiveIntegerField()
-    draw_match_count = models.PositiveIntegerField()
+    match_played_count = models.PositiveIntegerField(default=0)
+    win_match_count = models.PositiveIntegerField(default=0)
+    lost_match_count = models.PositiveIntegerField(default=0)
+    draw_match_count = models.PositiveIntegerField(default=0)
     
-    difference_goal = models.IntegerField()
-    scored_goal = models.PositiveIntegerField()
-    missed_goal = models.PositiveIntegerField()
+    difference_goal = models.IntegerField(default=0)
+    scored_goal = models.PositiveIntegerField(default=0)
+    missed_goal = models.PositiveIntegerField(default=0)
 
     last_five_match = ArrayField(
         base_field=models.CharField(max_length=1),
         size=5,
-        default=list
+        default=list,
+        blank=True,
+        null=True
     )
+    def __str__(self):
+        return f"{self.team} - {self.season_year}"
+
 # TODO: кеширование через редис
 # TODO: заполнить таблицу как на софаскор
 
@@ -204,12 +223,12 @@ class FbSeason(models.Model):
         verbose_name = 'Football Season'
         verbose_name_plural = 'Football Seasons'
         ordering = ['name_league']
-    name_league = models.ForeignKey( # какой-то кал выходит по названию, так то это название лиги и её старт и конец
+    # какой-то кал выходит по названию, так то это название лиги и её старт и конец
+    name_league = models.ForeignKey( 
         'FbLeague',
-        on_delete=models.CASCADE,
-        related_name='season',
+        on_delete=models.CASCADE, 
+        related_name='seasons',
     )
-
     start_season_year = models.PositiveIntegerField(
         validators=[MinValueValidator(1850), MaxValueValidator(2100)]
     )
@@ -267,7 +286,7 @@ class FbMatch(models.Model):
     home_team_score = models.PositiveSmallIntegerField(default=0)
     away_team_score = models.PositiveSmallIntegerField(default=0)
 
-    match_time = models.DateTimeField()
+    match_time = models.DateTimeField(db_index=True)
 
 
     def clean(self):
@@ -287,16 +306,16 @@ class FbMatch(models.Model):
 
         if conflict_match.exists():
             raise ValidationError('В этот день уже существует матч')
-
+    # TODO можна изменить чтобы матч и тут и в апи одинаково проверялись
 
     def __str__(self):
         return f"{self.home_team} - {self.away_team} {self.match_time}"
     
 
-class FbIncedent(models.Model):
+class FbIncident(models.Model):
     class Meta():
-        verbose_name = 'Football Incedent'
-        verbose_name_plural = 'Football Incedents'
+        verbose_name = 'Football Incident'
+        verbose_name_plural = 'Football Incidents'
 
     match_where_incedent = models.ForeignKey(
         FbMatch,
@@ -305,9 +324,9 @@ class FbIncedent(models.Model):
     time_where_incedent_make = models.PositiveIntegerField()
     is_own_goal = models.BooleanField()
     is_home = models.BooleanField() # инцедент хозяев или нет 
-    incedent_type = models.CharField(
-        choices=Type_of_Incedent,
-        max_length= 3,
+    incedent_type = models.ForeignKey(
+        'TypeIncedent',
+        on_delete=models.CASCADE
     )
     description = models.CharField(max_length=150, blank=True)
     reason = models.CharField(max_length=50, blank=True)
@@ -323,7 +342,7 @@ class FbGoal(models.Model):
         verbose_name_plural = 'Football Goals'
     
     incedent_goal = models.ForeignKey(
-        FbIncedent,
+        FbIncident,
         on_delete=models.CASCADE
     )
     player_who_scored = models.ForeignKey(
@@ -343,13 +362,13 @@ class FbGoal(models.Model):
 
 
 
-class FbSubtitution(models.Model):
+class FbSubstitution(models.Model):
     class Meta():
-        verbose_name = 'Football Subtitution'
-        verbose_name_plural = 'Football Subtitutions'
+        verbose_name = 'Football substitution'
+        verbose_name_plural = 'Football substitutions'
     
-    incedent_subtitution = models.ForeignKey(
-        FbIncedent,
+    incedent_substitution = models.ForeignKey(
+        FbIncident,
         on_delete=models.CASCADE
     )
     player_who_in = models.ForeignKey(
@@ -368,4 +387,37 @@ class FbSubtitution(models.Model):
             raise ValidationError('Не может быть что игроки совпадают')
         # TODO сделать учет максимального количества замен или подумать над этим
     def __str__(self):
-        return f"{str(self.incedent_subtitution)}"
+        return f"{str(self.incedent_substitution)}"
+
+
+
+
+""" Вспомогательные таблицы """
+class CountryList(models.Model):
+    class Meta:
+        verbose_name = "Country"
+        verbose_name_plural = "Countries"
+        ordering = ['country_name']
+
+    country_name = models.CharField(max_length=150)
+    iso_code = models.CharField(max_length=2, unique=True)
+
+    def __str__(self):
+        return f'{self.country_name} - {self.iso_code}'
+
+class TypeIncedent(models.Model):
+    class Meta:
+        verbose_name = "Incedent"
+        verbose_name_plural = "Incedents"
+        ordering = ['name_incedent']
+
+    name_incedent = models.CharField(max_length=50)
+    description_incedent = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return self.name_incedent
+
+
+# TODO Уточнить связи моделей: Для связи FbGoal и FbSubstitution с FbIncident лучше использовать
+#  OneToOneField вместо ForeignKey, так как одно событие в матче 
+# (гол, замена) соответствует одной записи об инциденте.
