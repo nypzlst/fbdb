@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'db.apps.DbConfig',
     'testing.apps.TestingConfig',
     'apiendpoint.apps.ApiendpointConfig',
+    'rest_framework.authtoken',
     'rest_framework'
 ]
 
@@ -145,5 +146,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS' : 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE' : 10
+    'PAGE_SIZE' : 10,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly'
+    ]
 }
+# 0369835a6b804ded8cb75006c684d7fb696451e4

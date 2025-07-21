@@ -23,10 +23,11 @@ from apiendpoint import views
 
 router = routers.DefaultRouter()
 router.register(r'country', views.CountryViewSet)
-
+from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
     path('', include(router.urls)),
     path('admin/', admin.site.urls),
+    path('api-token-auth/',obtain_auth_token),
     path('api-test/', include('rest_framework.urls',namespace='rest_framework'))
 ]
