@@ -76,24 +76,27 @@ WSGI_APPLICATION = 'fbdb.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 import os 
 from decouple import config 
+from dotenv import load_dotenv
+from urllib.parse import urlparse, parse_qsl
+load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
-DEBUG = config('DEBUG',default=False)
+DEBUG = config('DEBUG',default=False,cast=bool)
 
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1').split(' ')
 
-from dotenv import load_dotenv
-from urllib.parse import urlparse, parse_qsl
-load_dotenv()
 tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': tmpPostgres.path.replace('/', ''),
+        'TEST' :{
+            'NAME' : 'test_neondb',
+        },
         'USER': tmpPostgres.username,
         'PASSWORD': tmpPostgres.password,
         'HOST': tmpPostgres.hostname,
@@ -149,6 +152,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE' : 10,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication'
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly'

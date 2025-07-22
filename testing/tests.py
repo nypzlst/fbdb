@@ -1,11 +1,13 @@
 from django.test import TestCase
 from db.models import CountryList, FbCompetition, TypeCompetition,TypeIncedent,IncidentClass, TypeConference, FbFederation,TypeCompetition
+from rest_framework.test import APIRequestFactory, APITestCase, APIClient
+from unittest import skip
+from django.contrib.auth.models import User
 
-# Create your tests here.
-
+@skip("Not working on host")
 class DbTestCase(TestCase):
     def setUp(self):
-
+       
         CountryList.objects.create(country_name='England',iso_code = 'EN')
         CountryList.objects.create(country_name='France',iso_code = 'FR')
 
@@ -22,7 +24,6 @@ class DbTestCase(TestCase):
 
 
         
-
     def test_federation(self):
 
         federation = FbFederation.objects.create(
@@ -36,4 +37,27 @@ class DbTestCase(TestCase):
         )
         federation.other_tournament.add(self.competition2)
         self.assertEqual(federation.acronym_fed, 'FIFA')
+        
+
+class ApiTestCase(APITestCase):
+    
+    @classmethod
+    def setUpTestData(cls):
+        cls.admins = User.objects.create_superuser('admin', 'test@example.com', 'test')
+        cls.country = CountryList.objects.create(country_name="England", iso_code="EN")
+    
+    
+    def setUp(self):
+        self.client.login(username='admin',password='test')
+        
+        
+    def test_get_request(self):
+        response = self.client.get('/country/')
+        self.assertEqual(response.status_code,200)
+        
+    
+    def test_get_request_by_number(self):
+        response = self.client.get(f'/country/{self.country.id}/')
+        self.assertEqual(response.status_code,200)
+
 

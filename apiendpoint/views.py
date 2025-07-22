@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import CountrySerializer
+from .serializer.country import CountrySerializer
 from rest_framework import viewsets
 from db.models import CountryList
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, BasePermission
@@ -17,7 +17,10 @@ class IsStaffOrReadOnly(BasePermission):
 
 class CountryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
-    queryset = CountryList.objects.all().order_by()
+    queryset = CountryList.objects.all().order_by('country_name')
     serializer_class = CountrySerializer
+    
+    
+    
     
    

@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from db.models import CountryList
 
-class CountrySerializer(serializers.HyperlinkedModelSerializer):
+class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = CountryList
-        fields = ['country_name','iso_code']
+        fields = '__all__'
+        
+
