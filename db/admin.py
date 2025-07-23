@@ -7,7 +7,6 @@ from .models import CountryList, TypeIncident, IncidentClass
 class CountryAdmin(admin.ModelAdmin):
     list_display = ('country_name','iso_code','slug')
     prepopulated_fields = {"slug":("country_name",)}
-    list_editable = ['slug']
 
 
 admin.site.register(FbFederation)

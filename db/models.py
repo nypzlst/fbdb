@@ -396,7 +396,7 @@ class FbSubstitution(models.Model):
 
 # region Addition Models
 """ Вспомогательные таблицы """
-class CountryList(SlugTitleSaver,models.Model):
+class CountryList(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = "Country"
         verbose_name_plural = "Countries"
@@ -411,28 +411,39 @@ class CountryList(SlugTitleSaver,models.Model):
     
     
 
-class TypeIncident(models.Model):
+class TypeIncident(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = "Incedent"
         verbose_name_plural = "Incedents"
         ordering = ['name_incident']
-
+    slug_source_field = 'name_incident'
     name_incident = models.CharField(max_length=50)
     description_incident = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
         return self.name_incedent
-class IncidentClass(models.Model):
+    
+    
+
+class IncidentClass(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Football Incident Class'
         verbose_name_plural = 'Football Incident Clases'
         ordering = ['class_incident']
 
+    slug_source_field = 'class_incident'
     class_incident = models.CharField(max_length=50)
     description = models.CharField(max_length=200,blank=True)
+    
     def __str__(self):
         return self.class_incident
 #endregion
+
+
+
+
+
+
 
 # TODO Уточнить связи моделей: Для связи FbGoal и FbSubstitution с FbIncident лучше использовать
 #  OneToOneField вместо ForeignKey, так как одно событие в матче 

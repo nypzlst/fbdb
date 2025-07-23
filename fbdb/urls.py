@@ -18,11 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 
-from apiendpoint.views import CountryViews
+from apiendpoint.views import CountryViews,IncidentTypeViews
 
 
 router = routers.DefaultRouter()
 router.register(r'country', CountryViews.CountryViewSet)
+router.register(r'incidenttype', IncidentTypeViews.IncidentTypeViewSet)
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
