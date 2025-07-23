@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'testing.apps.TestingConfig',
     'apiendpoint.apps.ApiendpointConfig',
     'rest_framework.authtoken',
-    'rest_framework'
+    'rest_framework',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -156,6 +157,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly'
-    ]
+    ],
+    'DEFAULT_FILTER_BACKENDS' : ['django_filters.rest_framework.DjangoFilterBackend']
 }
 # 0369835a6b804ded8cb75006c684d7fb696451e4

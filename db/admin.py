@@ -1,8 +1,13 @@
 from django.contrib import admin
 from .models import FbFederation, FbSeason,FbSubstitution,FbCompetition, FbCountry, FbLeague, FbTeam, FbStandings, FbGoal,FbMatch,FbPlayer,FbIncident
-from .models import CountryList, TypeIncedent, IncidentClass
+from .models import CountryList, TypeIncident, IncidentClass
 # Register your models here.
 
+@admin.register(CountryList)
+class CountryAdmin(admin.ModelAdmin):
+    list_display = ('country_name','iso_code','slug')
+    prepopulated_fields = {"slug":("country_name",)}
+    list_editable = ['slug']
 
 
 admin.site.register(FbFederation)
@@ -17,6 +22,5 @@ admin.site.register(FbPlayer)
 admin.site.register(FbIncident)
 admin.site.register(FbGoal)
 admin.site.register(FbSubstitution)
-admin.site.register(CountryList)
-admin.site.register(TypeIncedent)
+admin.site.register(TypeIncident)
 admin.site.register(IncidentClass)

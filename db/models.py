@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import Q
+from django.utils.text import slugify
+from .slugtitlesave import SlugTitleSaver
 
 #region Choices Models
 """ Список для выбора типа enum"""
@@ -322,7 +324,7 @@ class FbIncident(models.Model):
     is_own_goal = models.BooleanField()
     is_home = models.BooleanField() # инцедент хозяев или нет 
     incident_type = models.ForeignKey(
-        'TypeIncedent',
+        'TypeIncident',
         on_delete=models.CASCADE
     )
     incident_class = models.ForeignKey(
@@ -394,19 +396,22 @@ class FbSubstitution(models.Model):
 
 # region Addition Models
 """ Вспомогательные таблицы """
-class CountryList(models.Model):
+class CountryList(SlugTitleSaver,models.Model):
     class Meta:
         verbose_name = "Country"
         verbose_name_plural = "Countries"
         ordering = ['country_name']
-
-    country_name = models.CharField(max_length=150)
+    slug_source_field = 'country_name'
+    country_name = models.CharField(max_length=150,db_index=True)
     iso_code = models.CharField(max_length=2, unique=True)
+    slug = models.SlugField(unique=True,blank=True)
 
     def __str__(self):
         return f'{self.country_name} - {self.iso_code}'
+    
+    
 
-class TypeIncedent(models.Model):
+class TypeIncident(models.Model):
     class Meta:
         verbose_name = "Incedent"
         verbose_name_plural = "Incedents"
@@ -432,3 +437,4 @@ class IncidentClass(models.Model):
 # TODO Уточнить связи моделей: Для связи FbGoal и FbSubstitution с FbIncident лучше использовать
 #  OneToOneField вместо ForeignKey, так как одно событие в матче 
 # (гол, замена) соответствует одной записи об инциденте.
+
