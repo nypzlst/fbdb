@@ -416,12 +416,20 @@ class TypeIncident(SlugTitleSaver, models.Model):
         verbose_name = "Incedent"
         verbose_name_plural = "Incedents"
         ordering = ['name_incident']
+        
     slug_source_field = 'name_incident'
-    name_incident = models.CharField(max_length=50)
+    
+    name_incident = models.CharField(max_length=50, unique=True)
     description_incident = models.CharField(max_length=200, blank=True)
+    slug = models.SlugField(unique=True, blank=True)
+    
+    class_incident = models.ForeignKey(
+        'IncidentClass',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
-        return self.name_incedent
+        return self.name_incident
     
     
 
@@ -430,10 +438,11 @@ class IncidentClass(SlugTitleSaver, models.Model):
         verbose_name = 'Football Incident Class'
         verbose_name_plural = 'Football Incident Clases'
         ordering = ['class_incident']
-
+    
     slug_source_field = 'class_incident'
     class_incident = models.CharField(max_length=50)
     description = models.CharField(max_length=200,blank=True)
+    
     
     def __str__(self):
         return self.class_incident
