@@ -1,13 +1,15 @@
 from django.utils.text import slugify
+from django.db import models
 
-class SlugTitleSaver:
+class SlugTitleSaver(models.Model):
     slug_source_field = 'name'
     
-    def save(self, **kwargs):
-        field = getattr(self,'slug_source_field','name')
-        if hasattr(self,field):
-            value = getattr(self, field)
-            if isinstance(value,str):
-                setattr(self,field,value.lower().title())
-                self.slug = slugify(getattr(self,field))
-        super().save(**kwargs)
+    def save(self, *args, **kwargs):
+        source_fields = getattr(self, 'slug_source_field', None)
+        if source_fields:
+            if isinstance(source_fields, list):
+                source_value = '-'.join(str(getattr(self, f, '')) for f in source_fields)
+            else:
+                source_value = str(getattr(self, source_fields, ''))
+            self.slug = slugify(source_value)
+        super().save(*args, **kwargs)

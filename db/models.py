@@ -311,18 +311,18 @@ class FbMatch(models.Model):
         return f"{self.home_team} - {self.away_team} {self.match_time}"
     
 
-class FbIncident(models.Model):
+class FbIncident(SlugTitleSaver,models.Model):
     class Meta():
         verbose_name = 'Football Incident'
         verbose_name_plural = 'Football Incidents'
 
-    match_where_incedent = models.ForeignKey(
+    match_where_incident = models.ForeignKey(
         FbMatch,
         on_delete=models.CASCADE
     )
     time_where_incedent_make = models.PositiveIntegerField()
     is_own_goal = models.BooleanField()
-    is_home = models.BooleanField() # инцедент хозяев или нет 
+    is_home = models.BooleanField() 
     incident_type = models.ForeignKey(
         'TypeIncident',
         on_delete=models.CASCADE
@@ -333,12 +333,14 @@ class FbIncident(models.Model):
     )
     description = models.CharField(max_length=150, blank=True)
     reason = models.CharField(max_length=50, blank=True)
+    slug = models.SlugField(unique=True, blank=True)
+    slug_source_field = ['match_where_incident','incident_class']
     
     def __str__(self):
-        return f"{str(self.match_where_incedent)}"
+        return f"{str(self.match_where_incident)}"
 
 
-
+#skip slug
 class FbGoal(models.Model):
     class Meta():
         verbose_name = 'Football Goal'
@@ -364,7 +366,7 @@ class FbGoal(models.Model):
         return f"{str(self.incedent_goal)}"
 
 
-
+#skip slug
 class FbSubstitution(models.Model):
     class Meta():
         verbose_name = 'Football substitution'
@@ -395,12 +397,13 @@ class FbSubstitution(models.Model):
 
 
 # region Addition Models
-""" Вспомогательные таблицы """
+
 class CountryList(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = "Country"
         verbose_name_plural = "Countries"
         ordering = ['country_name']
+        
     slug_source_field = 'country_name'
     country_name = models.CharField(max_length=150,db_index=True)
     iso_code = models.CharField(max_length=2, unique=True)
@@ -418,7 +421,6 @@ class TypeIncident(SlugTitleSaver, models.Model):
         ordering = ['name_incident']
         
     slug_source_field = 'name_incident'
-    
     name_incident = models.CharField(max_length=50, unique=True)
     description_incident = models.CharField(max_length=200, blank=True)
     slug = models.SlugField(unique=True, blank=True)
@@ -442,7 +444,7 @@ class IncidentClass(SlugTitleSaver, models.Model):
     slug_source_field = 'class_incident'
     class_incident = models.CharField(max_length=50)
     description = models.CharField(max_length=200,blank=True)
-    
+    slug = models.SlugField(unique=True, blank=True)
     
     def __str__(self):
         return self.class_incident

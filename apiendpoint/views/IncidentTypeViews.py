@@ -1,12 +1,9 @@
-from rest_framework.viewsets import ModelViewSet
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import IsAdminUser
 from db.models import TypeIncident
 from ..serializer.incidenttype import IncidentTypeSerializer
+from .BaseView import BaseAdminViewSet
 
-class IncidentTypeViewSet(ModelViewSet):
-    permission_classes = [IsAdminUser]
+class IncidentTypeViewSet(BaseAdminViewSet):
     queryset = TypeIncident.objects.all()
     serializer_class = IncidentTypeSerializer
-    filter_backends = [DjangoFilterBackend]
-    lookup_field = 'slug'
+ 
+ 

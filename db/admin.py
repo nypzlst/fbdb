@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import FbFederation, FbSeason,FbSubstitution,FbCompetition, FbCountry, FbLeague, FbTeam, FbStandings, FbGoal,FbMatch,FbPlayer
-from .models import CountryList, TypeIncident, IncidentClass
+from .models import CountryList, TypeIncident, IncidentClass, FbIncident
 # Register your models here.
 
 @admin.register(CountryList)
@@ -9,6 +9,7 @@ class CountryAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug":("country_name",)}
 
 
+admin.site.register(FbIncident)
 admin.site.register(FbFederation)
 admin.site.register(FbCompetition)
 admin.site.register(FbCountry)
