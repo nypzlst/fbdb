@@ -32,13 +32,13 @@ class TypeCompetition(models.TextChoices):
 
 
 """ Федерации в духе FIFA, UEFA ..."""
-class FbFederation(models.Model):
+class FbFederation(SlugTitleSaver,models.Model):
     class Meta:
         verbose_name = 'Football Federation'
         verbose_name_plural = 'Football Federations'
         ordering = ['acronym_fed']
 
-    name_fed = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True)
     acronym_fed = models.CharField(max_length=10, unique=True)
 
     type_fed = models.CharField(max_length=2, choices=TypeConference)
@@ -65,7 +65,8 @@ class FbFederation(models.Model):
     other_tournament = models.ManyToManyField(
         'FbCompetition',
         related_name='secondary_federation')
-
+    slug = models.SlugField(unique=True, blank=True)
+        
     def __str__(self):
         return self.acronym_fed
     
@@ -80,14 +81,14 @@ class FbFederation(models.Model):
 
 
 """ Список турниров """
-class FbCompetition(models.Model):
+class FbCompetition(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Football Competition'
         verbose_name_plural = 'Football Competitions'
-        ordering = ['competition_name']
+        ordering = ['name']
     
-    competition_name = models.CharField(max_length=50)
-    
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, blank=True)
     type_competition = models.CharField(
         max_length=1,
         choices = TypeCompetition,
@@ -95,45 +96,47 @@ class FbCompetition(models.Model):
     )
     
     def __str__(self):
-        return f"{self.competition_name} {self.get_type_competition_display()}"
+        return f"{self.name} {self.get_type_competition_display()}"
     # TODO: если что убрать приписку лига или турнир здесь
 
 
 
 """ Страна и федерация её """
-class FbCountry(models.Model):
+class FbCountry(SlugTitleSaver, models.Model):
     class Meta():
         verbose_name = "Football Country"
         verbose_name_plural = "Football Countries"
-        ordering = ['country_name']
+        ordering = ['name']
     
-    country_name = models.ForeignKey(
+    name = models.ForeignKey(
         'CountryList',
         on_delete=models.CASCADE)
     country_association_name = models.CharField(max_length=100)
     short_association_name = models.CharField(max_length=10)
-    
+    slug = models.SlugField(unique=True, blank=True)
     tournament_in_country = models.ManyToManyField(
         'FbCompetition',
         related_name='countries'
     )
 
     def __str__(self):
-        return f"{self.country_name} - {self.country_association_name}"
+        return f"{self.name} - {self.country_association_name}"
 
 # TODO приоритеты лиг сделать
 
 """ Сущность футбольной лиги """
-class FbLeague(models.Model):
+class FbLeague(SlugTitleSaver,models.Model):
     class Meta:
         verbose_name = 'Football League'
         verbose_name_plural = 'Football Leagues'
+        ordering = ['name']
     
-    league_name = models.ForeignKey(
+    name = models.ForeignKey(
         'FbCompetition',
         on_delete=models.CASCADE,
         limit_choices_to={'type_competition' : 'L'}
     )
+    slug = models.SlugField(unique=True, blank=True)
     country_league = models.ForeignKey(
         'CountryList',
         on_delete=models.CASCADE
@@ -141,25 +144,28 @@ class FbLeague(models.Model):
     count_team_in_league = models.IntegerField(default=0)
     # TODO вычеслять по фактическому количеству команд
     def __str__(self):
-        return str(self.league_name)
+        return str(self.name)
 
 
 
 """ Футбольные команды """
-class FbTeam(models.Model):
+class FbTeam(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Football Team'
         verbose_name_plural = 'Football Teams'
+        ordering = ['name']
     
-    team_name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, blank=True)
     league_where_play_team = models.ManyToManyField(FbCompetition)
     def __str__(self):
-        return self.team_name
+        return self.name
 
-class FbPlayer(models.Model):
+class FbPlayer(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Football Player'
         verbose_name_plural = 'Football Players'
+        ordering = ['short_name']
     
     full_name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=50)
@@ -172,7 +178,8 @@ class FbPlayer(models.Model):
     )
     height = models.PositiveIntegerField()
     date_of_birthday = models.DateField()
-
+    slug_source_field ='short_name'
+    slug = models.SlugField(unique=True, blank=True)
     national = models.ForeignKey('CountryList',on_delete=models.CASCADE)
     played_in_team = models.ForeignKey(FbTeam, on_delete=models.CASCADE)
 
@@ -182,7 +189,7 @@ class FbPlayer(models.Model):
 
 
 """ Сущность турнирной таблицы """
-class FbStandings(models.Model):
+class FbStandings(SlugTitleSaver,models.Model):
     class Meta:
         verbose_name = 'Football Standing'
         verbose_name_plural = 'Football Standings'
@@ -208,6 +215,10 @@ class FbStandings(models.Model):
         blank=True,
         null=True
     )
+    slug_source_field = ['season_year','team']
+    slug = models.SlugField(unique=True, blank=True)
+    
+    
     def __str__(self):
         return f"{self.team} - {self.season_year}"
 
@@ -217,7 +228,7 @@ class FbStandings(models.Model):
 
 
 """ Начала сезонов для лиги"""
-class FbSeason(models.Model):
+class FbSeason(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Football Season'
         verbose_name_plural = 'Football Seasons'
@@ -234,7 +245,9 @@ class FbSeason(models.Model):
     end_season_year = models.PositiveIntegerField(
         validators=[MinValueValidator(1850), MaxValueValidator(2100)]
     )
-
+    slug_source_field = ['name_league','start_season_year','end_season_year']
+    slug = models.SlugField(unique=True, blank=True)
+    
     def __str__(self):
         return f"{self.name_league} - {str(self.start_season_year)[-2:]}/{str(self.end_season_year)[-2:]}"
     def clean(self):
@@ -259,7 +272,7 @@ class FbSeason(models.Model):
 
 # region Match Table
 """ Создание статистики матчей на основе АПИ sofascore"""
-class FbMatch(models.Model):
+class FbMatch(SlugTitleSaver, models.Model):
     class Meta():
         verbose_name = 'Football Match'
         verbose_name_plural = 'Football Matches'
@@ -281,6 +294,8 @@ class FbMatch(models.Model):
         on_delete=models.CASCADE,
         related_name='away_team'
     )
+    slug_source_field = ['match_on_league','home_team','away_team']
+    slug = models.SlugField(unique=True, blank=True)
 
     home_team_score = models.PositiveSmallIntegerField(default=0)
     away_team_score = models.PositiveSmallIntegerField(default=0)
