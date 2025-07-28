@@ -18,14 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 
-from apiendpoint.views import CountryViews,IncidentTypeViews, IncidentClassView, FootballIncidentView
+# from apiendpoint.views import CountryViews,IncidentTypeViews, IncidentClassView, FootballIncidentView
 
 
 router = routers.DefaultRouter()
-router.register(r'country', CountryViews.CountryViewSet)
-router.register(r'incidenttype', IncidentTypeViews.IncidentTypeViewSet)
-router.register(r'incidentclass', IncidentClassView.IncidentClassViewSet)
-router.register(r'fbincident', FootballIncidentView.FbincidentViewSet)
+# router.register(r'country', CountryViews.CountryViewSet)
+# router.register(r'incidenttype', IncidentTypeViews.IncidentTypeViewSet)
+# router.register(r'incidentclass', IncidentClassView.IncidentClassViewSet)
+# router.register(r'fbincident', FootballIncidentView.FbincidentViewSet)
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
