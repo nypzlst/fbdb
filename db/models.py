@@ -10,44 +10,20 @@ from .slugtitlesave import SlugTitleSaver
 #region Choices Models
 """ Список для выбора типа enum"""
 class PreferedFoot(models.TextChoices):
-    LEFT = 'L', 'LEFT',
-    RIGHT = 'R', 'RIGHT',
+    LEFT = 'L', 'LEFT'
+    RIGHT = 'R', 'RIGHT'
     BOTH = 'B', 'BOTH'
 
 class Position(models.TextChoices):
-    GOALKEEPER = 'GK', 'GOALKEEPER',
-    DEFENDER = 'D', 'DEFENDER',
-    MIDFIELDER = 'M', 'MIDFIELDER',
+    GOALKEEPER = 'GK', 'GOALKEEPER'
+    DEFENDER = 'D', 'DEFENDER'
+    MIDFIELDER = 'M', 'MIDFIELDER'
     FORWARD = 'F', 'FORWARD'
 
 class TypeConference(models.TextChoices):
-    GLOBAL = 'GL','GLOBAL',
+    GLOBAL = 'GL','GLOBAL'
     CONTINENTAL = 'CN', 'CONTINENTAL'
 
-class TypeCompetition(models.TextChoices):
-    CLUB = 'CL', 'club competition',
-    NATIONAL = 'NT', 'national team competition'
-    
-    
-class TierCompetition(models.TextChoices):
-    FIRSTCUP = '1tierC', '1-st-tier cup',
-    SECONDCUP = '2tierC', '2nd-tier cup',
-    THIRDCUP = '3tierC', '3rd-tier cup',
-    FIRSTLEAGUE = '1tierL', '1-st-tier league',
-    SECONDLEAGUE = '2tierL', '2nd-tier league',
-    THIRDLEAGUE = '3tierL', '3rd-tier league',
-    FOURTHLEAGUE = '4tierL', '4th-tier league',
-    FIFTHLEAGUE = '5tierL', '5th-tier league',
-    SIXTHLEAGUE = '6tierL', '6th-tier league',
-    SEVENTHLEAGUE = '7tierL', '7th-tier league',
-    EIGHTLEAGUE = '8tierL', '8th-tier league',
-    NINTHLEAGUE = '9tierL', '9th-tier league',
-    TENTHLEAUGUE = '10tierL', '10th-tier league',
-    ELEVENTHLEAUGUE = '11tierL', '11th-tier league',
-    NATIONALCUP = 'nacup', 'national cup'
-    LEAGUECUP = 'lcup', 'league cup',
-    SUPERCUP = 'supcup', 'super cup',
-    LOWERCUP = 'lowcup', 'lower cup'
 #endregion
 
 
@@ -64,27 +40,34 @@ class Organization(SlugTitleSaver, models.Model):
         validators=[MinValueValidator(1850), MaxValueValidator(2100)]
     )
     type_organization = models.CharField(max_length=2,choices=TypeConference)
+    slug_source_field = 'acronym_name'
     slug = models.SlugField(
         unique=True,
         blank=True
     )
     
     @property
-    def members_count(self):
-        return self.member_countries.filter(is_associate_member=False).count()
+    def members_count_without_associate(self):
+        return self.member_global.filter(is_associate_member=False).count() + self.member_local.filter(is_associate_member=False).count()
     @property
     def associate_member_count(self):
-        return self.member_countries.filter(is_associate_member=True).count()
+        return self.member_global.filter(is_associate_member=True).count() + self.member_local.filter(is_associate_member=True).count()
     @property
     def total_member(self):
-        return self.member_countries.count()
+        return self.member_global.count()+ self.member_local.count()
     
     
     def __str__(self):
-        return self.acronym_fed
+        return self.acronym_name
     
     def clean(self):
         super().clean()
+        if not self.pk:
+            return
+
+        if not hasattr(self, 'member_countries'):
+            return
+        
         if self.associate_member_count > self.members_count:
             raise ValidationError({
             'associate_member_count': "Должно быть не больше, чем members_count."
@@ -102,54 +85,79 @@ class OrganizationMember(SlugTitleSaver,models.Model):
     name = models.CharField(max_length=200)
     country = models.OneToOneField('Country', on_delete= models.CASCADE)
     slug = models.SlugField(unique=True,blank=True)
+    is_associate_member = models.BooleanField(default=False)
     
-    # global_organizer = models.ForeignKey(
-    #     'Organization',
-    #     on_delete=models.CASCADE,
-    #     related_name='global_members',
-    #     limit_choices_to={'name': 'FIFA'}, 
-    #     null=True,
-    #     blank=True,
-    #     verbose_name="Global Organizer"
-    # )
-
-    # regional_organizer = models.ForeignKey(
-    #     'Organization',
-    #     on_delete=models.CASCADE,
-    #     related_name='regional_members',
-    #     limit_choices_to=~models.Q(name='FIFA'),  
-    #     null=True,
-    #     blank=True,
-    #     verbose_name="Regional Organizer"
-    # )
-    
+    global_organizer = models.ForeignKey(
+        'Organization',
+        on_delete=models.CASCADE,
+        related_name='member_global',
+        limit_choices_to={'acronym_name': 'FIFA'}, 
+        null=True,
+        blank=True,
+        verbose_name="Global Organizer"
+    )
+    local_organizer = models.ForeignKey(
+        'Organization',
+        on_delete=models.CASCADE,
+        related_name='member_local',
+        limit_choices_to=~models.Q(acronym_name='FIFA'),
+        null=True,
+        blank=True,
+        verbose_name="Regional Organizer"
+    )
     
     def __str__(self):
         return self.name
 
 
 
-class Competition(SlugTitleSaver,models.Model):
+class Competition(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Competition'
         verbose_name_plural = 'Competitions'
         ordering = ['name']
+        
+    class TypeCompetition(models.TextChoices):
+        CLUB = 'CLUB', 'club competition'
+        NATIONAL = 'NAT', 'national team competition'
+    
+    class TierCompetition(models.TextChoices):
+        FIRSTCUP = '1tierC', '1-st-tier cup'
+        SECONDCUP = '2tierC', '2nd-tier cup'
+        THIRDCUP = '3tierC', '3rd-tier cup'
+        FIRSTLEAGUE = '1tierL', '1-st-tier league'
+        SECONDLEAGUE = '2tierL', '2nd-tier league'
+        THIRDLEAGUE = '3tierL', '3rd-tier league'
+        FOURTHLEAGUE = '4tierL', '4th-tier league'
+        FIFTHLEAGUE = '5tierL', '5th-tier league'
+        SIXTHLEAGUE = '6tierL', '6th-tier league'
+        SEVENTHLEAGUE = '7tierL', '7th-tier league'
+        EIGHTLEAGUE = '8tierL', '8th-tier league'
+        NINTHLEAGUE = '9tierL', '9th-tier league'
+        TENTHLEAUGUE = '10tierL', '10th-tier league'
+        ELEVENTHLEAUGUE = '11tierL', '11th-tier league'
+        NATIONALCUP = 'nacup', 'national cup'
+        LEAGUECUP = 'lcup', 'league cup'
+        SUPERCUP = 'supcup', 'super cup'
+        LOWERCUP = 'lowcup', 'lower cup'
+    
     
     name = models.CharField(max_length=200, unique=True)
-    type_competition = models.CharField(max_length=2, choices=TypeCompetition)
-    tier_competition = models.CharField(max_length=10, choices=TierCompetition,blank=True)
+    type = models.CharField(max_length=4, choices=TypeCompetition)
+    tier = models.CharField(max_length=10, choices=TierCompetition,blank=True)
+    organizer = models.ForeignKey('Organization', on_delete=models.SET_NULL,null=True,blank=True)
     country = models.ForeignKey('Country', on_delete=models.SET_NULL, blank=True, null=True)
     slug = models.SlugField(unique=True,blank=True)
 
     def clean(self):
         super().clean()
-        if self.type_competition == TypeCompetition.NATIONAL and self.tier:
+        if self.type == self.TypeCompetition.NATIONAL and self.tier:
             raise ValidationError ({
-                'tier_competition' : _('national competition cannot have a tier')
+                'tier' : _('national competition cannot have a tier')
             })
 
     def __str__(self):
-        return f"{self.name} ({self.get_type_competition_display()})"
+        return f"{self.name} ({self.get_type_display()})"
 
 
 
@@ -166,53 +174,75 @@ class Country(models.Model):
         return self.name
 
 
+class Match(SlugTitleSaver, models.Model):
+    class Meta:
+        verbose_name = 'Match'
+        verbose_name_plural = 'Matches'
+        
+    home_team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='home_matches')
+    away_team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='away_matches')
+    home_score = models.IntegerField()
+    away_score = models.IntegerField()
 
+    stadium = models.ForeignKey('Stadium', on_delete=models.CASCADE)
+    tournament = models.ForeignKey('Competition', on_delete=models.CASCADE)
+    season = models.ForeignKey('Season',on_delete=models.CASCADE)
+    
+    match_day = models.DateField()
+    slug_source_field = ['home_team','away_team','season','match_day']
+    
+    slug = models.SlugField(unique=True,blank=True)
+    
+    def clean(self):
+        super().clean()
 
+        if self.home_team == self.away_team:
+            raise ValidationError({
+                'away_team':'Однинаковые команды выбраны'
+            })
+        conflict_match = Match.objects.filter(
+                match_day=self.match_day
+            ).filter(
+                Q(home_team=self.home_team) | Q(home_team=self.away_team) |
+                Q(away_team=self.home_team) | Q(away_team=self.away_team)
+            )
+        if self.pk:
+            conflict_match = conflict_match.exclude(pk=self.pk)
 
+        if conflict_match.exists():
+            raise ValidationError('В этот день уже существует матч')
+    
+    def __str__(self):
+        return f'{self.home_team} - {self.away_team} = {self.season} - {self.match_day}'
+
+class Team(models.Model):
+    name = models.CharField(max_length=200)
+
+class Stadium(models.Model):
+    name = models.CharField(max_length=200)
+
+class Season(models.Model):
+    class Meta:
+        verbose_name = 'Season'
+        verbose_name_plural = 'Seasons'
+        ordering = ['competition']
+        
+    competition = models.ForeignKey('Competition', on_delete=models.CASCADE)
+    season_start = models.DateField()
+    season_end = models.DateField()
+    slug_source_field = ['competition','season_start','season_end']
+    slug = models.SlugField(unique=True,blank=True)
+    
+    def __str__(self):
+        return f"{self.competition} = {self.season_start} - {self.season_end}"
+    
+# CREATED MODELS : Season, Match, Organization, OrganizationMember, Country, Competition 
+# NEEDED MODELS : Incident, Goal, SwapPlayer, Player, Standings, League, Type and class Incident
+    
 # OLD MODELS
-# """ Список турниров """
-# class FbCompetition(SlugTitleSaver, models.Model):
-#     class Meta:
-#         verbose_name = 'Football Competition'
-#         verbose_name_plural = 'Football Competitions'
-#         ordering = ['name']
-    
-#     name = models.CharField(max_length=50)
-#     slug = models.SlugField(unique=True, blank=True)
-#     type_competition = models.CharField(
-#         max_length=1,
-#         choices = TypeCompetition,
-#         blank=True
-#     )
-    
-#     def __str__(self):
-#         return f"{self.name} {self.get_type_competition_display()}"
-#     # TODO: если что убрать приписку лига или турнир здесь
 
 
 
-# """ Страна и федерация её """
-# class FbcountryFed(SlugTitleSaver, models.Model):
-#     class Meta():
-#         verbose_name = "Турнир Страны"
-#         verbose_name_plural = "Турниры Страны"
-#         ordering = ['name']
-    
-#     name = models.ForeignKey(
-#         'CountryList',
-#         on_delete=models.CASCADE)
-#     country_association_name = models.CharField(max_length=100)
-#     short_association_name = models.CharField(max_length=10)
-#     slug = models.SlugField(unique=True, blank=True)
-#     tournament_in_country = models.ManyToManyField(
-#         'FbCompetition',
-#         related_name='countries'
-#     )
-
-#     def __str__(self):
-#         return f"{self.name} - {self.country_association_name}"
-
-# # TODO приоритеты лиг сделать
 
 # """ Сущность футбольной лиги """
 # class FbLeague(SlugTitleSaver,models.Model):
@@ -504,22 +534,6 @@ class Country(models.Model):
 # # endregion
 
 
-# # region Addition Models
-
-# class CountryList(SlugTitleSaver, models.Model):
-#     class Meta:
-#         verbose_name = "Country"
-#         verbose_name_plural = "Countries"
-#         ordering = ['country_name']
-        
-#     slug_source_field = 'country_name'
-#     country_name = models.CharField(max_length=150,db_index=True)
-#     iso_code = models.CharField(max_length=2, unique=True)
-#     slug = models.SlugField(unique=True,blank=True)
-
-#     def __str__(self):
-#         return f'{self.country_name} - {self.iso_code}'
-    
     
 
 # class TypeIncident(SlugTitleSaver, models.Model):
