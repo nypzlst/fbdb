@@ -157,7 +157,7 @@ class Competition(SlugTitleSaver, models.Model):
             })
 
     def __str__(self):
-        return f"{self.name} ({self.get_type_display()})"
+        return f"{self.name}({self.get_type_display()})"
 
 
 
@@ -182,17 +182,17 @@ class Match(SlugTitleSaver, models.Model):
         
     home_team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='home_matches')
     away_team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='away_matches')
-    home_score = models.IntegerField()
-    away_score = models.IntegerField()
+    home_score = models.PositiveIntegerField()
+    away_score = models.PositiveIntegerField()
 
     stadium = models.ForeignKey('Stadium', on_delete=models.CASCADE)
-    tournament = models.ForeignKey('Competition', on_delete=models.CASCADE)
     season = models.ForeignKey('Season',on_delete=models.CASCADE)
+    competition = models.ForeignKey(Competition, on_delete=models.CASCADE,related_name='competition')
     
     match_day = models.DateField()
     slug_source_field = ['home_team','away_team','season','match_day']
     
-    slug = models.SlugField(unique=True,blank=True)
+    slug = models.SlugField(unique=True,blank=True, max_length=250)
     
     def clean(self):
         super().clean()
@@ -214,12 +214,26 @@ class Match(SlugTitleSaver, models.Model):
             raise ValidationError('В этот день уже существует матч')
     
     def __str__(self):
-        return f'{self.home_team} - {self.away_team} = {self.season} - {self.match_day}'
+        return f'{self.home_team}_{self.away_team}_{self.season}_{self.match_day}'
 
-class Team(models.Model):
+
+
+class Team(SlugTitleSaver, models.Model):
+    
+    class TypeTeam(models.TextChoices):
+        NATIONAL = 'NAT', 'national'
+        CLUB = 'CLUB' , 'club'
+        YOUNGTEAM = 'YTEAM' , 'young team'
+        
+        
     name = models.CharField(max_length=200)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE)
+    competition_played = models.ManyToManyField(Competition)
+    type = models.CharField(max_length=5,choices=TypeTeam)
 
-
+    slug = models.SlugField(unique=True, blank=True)
+    def __str__(self):
+        return self.name
 
 
 class Stadium(SlugTitleSaver,models.Model):
@@ -255,14 +269,43 @@ class Season(models.Model):
     slug = models.SlugField(unique=True,blank=True)
     
     def __str__(self):
-        return f"{self.competition} = {self.season_start} - {self.season_end}"
+        return f"{self.competition}_{self.season_start}_{self.season_end}"
     
+
+
+class Player(SlugTitleSaver,models.Model):
+    class Meta:
+        verbose_name = 'Player'
+        verbose_name_plural = 'Players'
+    
+    full_name = models.CharField(max_length=250, unique=True)
+    short_name = models.CharField(max_length=100)
+    number_tshirt = models.PositiveIntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
+    played_team = models.ForeignKey(Team,on_delete=models.CASCADE)
+    slug_source_field = ['short_name']
+    slug = models.SlugField(unique=True,blank=True)
+    
+    def __str__(self):
+        return self.short_name
+
+
+# class League(SlugTitleSaver, models.Model):
+#     class Meta:
+#         verbose_name = 'League'
+#         verbose_name_plural = 'Leagues'
+        
     
 
 
 
-# CREATED MODELS : Season, Match, Organization, OrganizationMember, Country, Competition 
-# NEEDED MODELS : Incident, Goal, SwapPlayer, Player, Standings, League, Type and class Incident
+
+
+
+
+
+
+# CREATED MODELS : Season, Match, Organization, OrganizationMember, Country, Competition, Team,Player
+# NEEDED MODELS : Incident, Goal, SwapPlayer, , Standings, League, Type and class Incident
     
 # OLD MODELS
 
