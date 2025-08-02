@@ -13,3 +13,5 @@ class SlugTitleSaver(models.Model):
                 source_value = str(getattr(self, source_fields, ''))
             self.slug = slugify(source_value)
         super().save(*args, **kwargs)
+    class Meta:
+        abstract = True

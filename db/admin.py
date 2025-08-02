@@ -1,14 +1,14 @@
 from django.contrib import admin
-# from .models import FbFederation, FbSeason,FbSubstitution,FbCompetition, FbCountry, FbLeague, FbTeam, FbStandings, FbGoal,FbMatch,FbPlayer
-# from .models import CountryList, TypeIncident, IncidentClass, FbIncident
-# Register your models here.
-from .models import Country, Competition, OrganizationMember, Organization
+from .models import Country, Season,Competition, Stadium,OrganizationMember, Organization, Match,Team
 
 
 admin.site.register(Country)
 admin.site.register(Competition)
 admin.site.register(OrganizationMember)
-
+admin.site.register(Team)
+admin.site.register(Match)
+admin.site.register(Stadium)
+admin.site.register(Season)
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ('name', 'acronym_name', 'members_count','associate_member_count','total_member',)  # <-- тут свойство
@@ -28,17 +28,3 @@ class OrganizationAdmin(admin.ModelAdmin):
     total_member.short_description = 'Количество всех участников'
     
     
-# admin.site.register(FbIncident)
-# admin.site.register(FbFederation)
-# admin.site.register(FbCompetition)
-# admin.site.register(FbCountry)
-# admin.site.register(FbLeague)
-# admin.site.register(FbTeam)
-# admin.site.register(FbStandings)
-# admin.site.register(FbSeason)
-# admin.site.register(FbMatch)
-# admin.site.register(FbPlayer)
-# admin.site.register(FbGoal)
-# admin.site.register(FbSubstitution)
-# admin.site.register(TypeIncident)
-# admin.site.register(IncidentClass)

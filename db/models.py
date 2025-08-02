@@ -83,10 +83,10 @@ class OrganizationMember(SlugTitleSaver,models.Model):
         ordering = ['name']
         
     name = models.CharField(max_length=200)
+    acronym = models.CharField(max_length=10)
     country = models.OneToOneField('Country', on_delete= models.CASCADE)
     slug = models.SlugField(unique=True,blank=True)
     is_associate_member = models.BooleanField(default=False)
-    
     global_organizer = models.ForeignKey(
         'Organization',
         on_delete=models.CASCADE,
@@ -178,6 +178,7 @@ class Match(SlugTitleSaver, models.Model):
     class Meta:
         verbose_name = 'Match'
         verbose_name_plural = 'Matches'
+        ordering = ['home_team','away_team','stadium','match_day']
         
     home_team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='home_matches')
     away_team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='away_matches')
@@ -218,8 +219,28 @@ class Match(SlugTitleSaver, models.Model):
 class Team(models.Model):
     name = models.CharField(max_length=200)
 
-class Stadium(models.Model):
+
+
+
+class Stadium(SlugTitleSaver,models.Model):
+    class Meta:
+        verbose_name = 'Stadium'
+        verbose_name_plural = 'Stadiums'
+        ordering = ['name','country','home_team']
+        
     name = models.CharField(max_length=200)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name='stadium')
+    city = models.CharField(max_length=200,blank=True)
+    capacity = models.IntegerField(null=True,blank=True)
+    home_team = models.ForeignKey('Team',on_delete=models.SET_NULL,blank=True, null=True)
+    
+    slug_source_field = ['name']
+    slug = models.SlugField(unique=True,blank=True)
+    
+    def __str__(self):
+        return self.name
+
+
 
 class Season(models.Model):
     class Meta:
@@ -236,6 +257,10 @@ class Season(models.Model):
     def __str__(self):
         return f"{self.competition} = {self.season_start} - {self.season_end}"
     
+    
+
+
+
 # CREATED MODELS : Season, Match, Organization, OrganizationMember, Country, Competition 
 # NEEDED MODELS : Incident, Goal, SwapPlayer, Player, Standings, League, Type and class Incident
     
